@@ -347,12 +347,6 @@ namespace JurisUtilityBase
           
         }
 
-
-
-
-
-
-
         private void LexisNexisLogoPictureBox_Click(object sender, EventArgs e)
         {
             string answer = Interaction.InputBox("Please enter the admin password", "Factory Reset", "");
