@@ -349,109 +349,121 @@ namespace JurisUtilityBase
 
         private void LexisNexisLogoPictureBox_Click(object sender, EventArgs e)
         {
-            string answer = Interaction.InputBox("Please enter the admin password", "Factory Reset", "");
-            if (answer.Equals("6196-Kovitz", StringComparison.OrdinalIgnoreCase))
+            string sql = "";
+
+            sql = "select top 1 dbo.jfn_FormatClientCode(clicode), billtoclinbr from billcopy as bc inner join billto as bt on bt.BillToSysNbr = bc.BilCpyBillTo " +
+                 " inner join client as c on c.clisysnbr = bt.BillToCliNbr " +
+                 " where(bt.BillToCliNbr in (select clisysnbr from client where arcodes like 'EM00%')) and bc.bilcpyprintformat = 0 and bc.bilcpyexportformat = 5";
+           DataSet dd =  _jurisUtility.RecordsetFromSQL(sql);
+            if (dd != null && dd.Tables[0].Rows.Count > 0)
             {
-                string SQL = "IF OBJECT_ID('dbo.ClientBranchStorageAll', 'U') IS NOT NULL DROP TABLE dbo.ClientBranchStorageAll; ";
-                _jurisUtility.ExecuteSqlCommand(0, SQL);
+                foreach (DataRow rw in dd.Tables[0].Rows)
+                {
+                    DialogResult gg = MessageBox.Show("We will now change " + rw[0].ToString() + " to NOT email billing (it currently should be)" + "\r\n" + "Have you verified and want to update it?", "Test", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                    if (gg == DialogResult.Yes)
+                    {
+                        sql = "update bc set bc.bilcpyprintformat=1, bc.bilcpyexportformat=0 " +
+                     " from billcopy as bc inner join billto as bt on bt.BillToSysNbr = bc.BilCpyBillTo " +
+                     " inner join client as c on c.clisysnbr = bt.BillToCliNbr " +
+                     " where ( bt.BillToCliNbr in (select clisysnbr from client where clisysnbr = " + rw[1].ToString() + "))";
+                        _jurisUtility.ExecuteNonQueryCommand(0, sql);
 
-                SQL = "IF OBJECT_ID('dbo.ClientBranchStorageAll', 'U') IS NULL create table dbo.ClientBranchStorageAll (Client varchar(50), Branch varchar(100)) ; ";
-                _jurisUtility.ExecuteSqlCommand(0, SQL);
+                        MessageBox.Show("Done. Now verify it worked", "Test", MessageBoxButtons.OK, MessageBoxIcon.None);
+                    }
+                }
+                sql = "select top 1 dbo.jfn_FormatClientCode(clicode), billtoclinbr from billcopy as bc inner join billto as bt on bt.BillToSysNbr = bc.BilCpyBillTo " +
+             " inner join client as c on c.clisysnbr = bt.BillToCliNbr " +
+             " where(bt.BillToCliNbr in (select clisysnbr from client where arcodes like 'EM0%' and arcodes not like 'EM00%')) and bc.bilcpyprintformat = 1 and bc.bilcpyexportformat = 0";
+                dd.Clear();
+                dd = _jurisUtility.RecordsetFromSQL(sql);
+                if (dd != null && dd.Tables[0].Rows.Count > 0)
+                {
+                    foreach (DataRow rw in dd.Tables[0].Rows)
+                    {
+                        DialogResult gg = MessageBox.Show("We will now change " + rw[0].ToString() + " TO email billing (it currently should NOT be)" + "\r\n" + "Have you verified and want to update it?", "Test", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                        if (gg == DialogResult.Yes)
+                        {
+                            sql = "update bc set  bc.bilcpyprintformat=0, bc.bilcpyexportformat=5  " +
+                         " from billcopy as bc inner join billto as bt on bt.BillToSysNbr = bc.BilCpyBillTo " +
+                         " inner join client as c on c.clisysnbr = bt.BillToCliNbr " +
+                        " where ( bt.BillToCliNbr in (select clisysnbr from client where clisysnbr = " + rw[1].ToString() + "))";
+                            _jurisUtility.ExecuteNonQueryCommand(0, sql);
 
-                SQL = "Insert into ClientBranchStorageAll (Client, Branch) values ('', 'ADVA'), ('', 'AMCO'), ('', 'ADVO'), ('', 'AMPR'), ('', 'BRR'), ('', 'CAGA'), ('', 'CHRE'), ('', 'COSP')";
-                _jurisUtility.ExecuteSqlCommand(0, SQL);
+                            MessageBox.Show("Done. Now verify it worked", "Test", MessageBoxButtons.OK, MessageBoxIcon.None);
+                        }
+                    }
 
-                SQL = "Insert into ClientBranchStorageAll (Client, Branch) values ('', 'EPI'), ('', 'FIPR'), ('', 'FOPR'), ('', 'FORTH')";
-                _jurisUtility.ExecuteSqlCommand(0, SQL);
 
-                SQL = "Insert into ClientBranchStorageAll (Client, Branch) values ('', 'FSR'), ('', 'HALE'), ('', 'KASS'), ('', 'HILL'), ('', 'MCGI'), ('', 'MPER'), ('', 'MPRO'), ('', 'SUP'), ('', 'WEST'), ('', 'WILD'), ('', 'MILL')";
-                _jurisUtility.ExecuteSqlCommand(0, SQL);
 
-                SQL = "Insert into ClientBranchStorageAll (Client, Branch) values ('', 'PARA'), ('', 'PARK'), ('', 'PATH'), ('', 'PMGRS'), ('', 'PRMG'), ('', 'PRSP'), ('', 'REALM'), ('', 'SDLR'), ('', 'SILV'), ('', 'SPI'), ('', 'SLFe')";
-                _jurisUtility.ExecuteSqlCommand(0, SQL);
-                MessageBox.Show("Client and Branch information refreshed to default", "Finished", MessageBoxButtons.OK, MessageBoxIcon.None);
+
+
+
+                }
+                else
+                    MessageBox.Show("There are no clients with EM0(not 0) that are set FROM email billing", "Error", MessageBoxButtons.OK, MessageBoxIcon.None);
+
+
+
+
+
             }
             else
-            {
-                MessageBox.Show("Incorrect password. The application will now Exit.", "Fatal Error", MessageBoxButtons.OK, MessageBoxIcon.Hand);
-                System.Environment.Exit(1);
-            }
+                MessageBox.Show("There are no clients with EM00 that are set TO email billing", "Error", MessageBoxButtons.OK, MessageBoxIcon.None);
+
         }
 
         private void buttonBulkSetAllMatters_Click(object sender, EventArgs e)
         {
-            ClientBranchSelector cbs = new ClientBranchSelector(_jurisUtility, "Bulk Set All Matters", "ClientBranchStorageAll");
-            cbs.ShowDialog();
-            List<string> clients = cbs.clients.ToList();
-            List<string> branches = cbs.branches.ToList();
-            if (cbs.executeChanges)
+            List<Client> cliListTo = new List<Client>();
+            List<Client> cliListFrom = new List<Client>();
+            int total = 0;
+            Client cli;
+            string sql = "select clisysnbr, ARCodes from client where ARCodes like 'EM%'";
+            DataSet dd = _jurisUtility.RecordsetFromSQL(sql);
+            if (dd != null && dd.Tables[0].Rows.Count > 0)
             {
-                cbs.Close();
-                string Param = "";
-                if (clients.Count > 0)
+                foreach (DataRow rw in dd.Tables[0].Rows)
                 {
-                    foreach (string client in clients)
-                    {
-                        Param = Param + "'" + client + "',";
-                    }
-
-                    Param = Param.TrimEnd(',');
-
-                    string SQL = "update bc set " + getBillCopySQL() +
-                    " from billcopy as bc inner join billto as bt on bt.BillToSysNbr = bc.BilCpyBillTo " +
-                    " inner join client as c on c.clisysnbr = bt.BillToCliNbr " +
-                    " where bt.BillToCliNbr in (select clisysnbr from client where clicode in (" + Param + ")) ";
-
-                    _jurisUtility.ExecuteNonQueryCommand(0, SQL);
+                    cli = new Client();
+                    cli.ID = Convert.ToInt32(rw[0].ToString());
+                    cli.code = rw[1].ToString();
+                    total++;
+                    if (cli.code.StartsWith("EM00"))
+                        cliListFrom.Add(cli);
+                    else
+                        cliListTo.Add(cli);
                 }
 
-                Param = "";
+            }
+            string SQL = "";
+            int runningTotal = 0;
+            foreach (Client cc in cliListFrom)
+            {
+                runningTotal++;
+               SQL = "update bc set bc.bilcpyprintformat=1, bc.bilcpyexportformat=0 " +
+                " from billcopy as bc inner join billto as bt on bt.BillToSysNbr = bc.BilCpyBillTo " +
+                " inner join client as c on c.clisysnbr = bt.BillToCliNbr " +
+                " where ( bt.BillToCliNbr in (select clisysnbr from client where clisysnbr = " + cc.ID.ToString() + "))";
+                _jurisUtility.ExecuteNonQueryCommand(0, SQL);
+                UpdateStatus("Updating....", runningTotal, total);
+            }
+            foreach (Client cc in cliListTo)
+            {
 
-                if (branches.Count > 0)
-                {
-                    string temp = "";
-                    foreach (string branch in branches)
-                    {
-                        if (branch.Equals("SLFe"))
-                        {
-                            string sql = "select distinct BRANCH from client where BRANCH like 'SLFe%'";
-                            DataSet dd = _jurisUtility.RecordsetFromSQL(sql);
-                            if (dd != null && dd.Tables[0].Rows.Count > 0)
-                            {
-                                foreach (DataRow rw in dd.Tables[0].Rows)
-                                    temp = temp + "'" + rw[0].ToString() + "',";
+                SQL = "update bc set  bc.bilcpyprintformat=0, bc.bilcpyexportformat=5  " +
+                 " from billcopy as bc inner join billto as bt on bt.BillToSysNbr = bc.BilCpyBillTo " +
+                 " inner join client as c on c.clisysnbr = bt.BillToCliNbr " +
+                " where ( bt.BillToCliNbr in (select clisysnbr from client where clisysnbr = " + cc.ID.ToString() + "))";
+                _jurisUtility.ExecuteNonQueryCommand(0, SQL);
+                UpdateStatus("Updating....", runningTotal, total);
+            }
 
-                            }
-                        }
-                        if (string.IsNullOrEmpty(temp))
-                            Param = Param + "'" + branch + "',";
-                        else
-                        {
-                            Param = Param + temp ;
-                            temp = "";
-                        }
-                    }
-
-                    Param = Param.TrimEnd(',');
-
-                    string SQL = "update bc set " + getBillCopySQL() +
-                    " from billcopy as bc inner join billto as bt on bt.BillToSysNbr = bc.BilCpyBillTo " +
-                    " inner join client as c on c.clisysnbr = bt.BillToCliNbr " +
-                    " where c.BRANCH in (" + Param + ") ";
-
-
-                    _jurisUtility.ExecuteNonQueryCommand(0, SQL);
-                }
-
-
-                UpdateStatus("Finished Update.", 1, 1);
+            UpdateStatus("Finished Update.", total, total);
                 MessageBox.Show("The process is complete", "Confirmation", MessageBoxButtons.OK, MessageBoxIcon.None);
                 UpdateStatus("Ready to Run...", 0, 1);
-            }
-            else
-            {
-                cbs.Close();
-            }
+            cliListFrom.Clear();
+            cliListTo.Clear();
+
         }
 
         private void labelDescription_Click(object sender, EventArgs e)

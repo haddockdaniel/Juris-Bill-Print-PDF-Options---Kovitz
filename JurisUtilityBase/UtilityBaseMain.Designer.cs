@@ -113,7 +113,6 @@
             this.labelDescription.Text = "Updates billing preferences for matters based on the selected client, branch and " +
     "optional timekeeper";
             this.labelDescription.Click += new System.EventHandler(this.labelDescription_Click);
-
             // 
             // statusGroupBox
             // 
@@ -146,7 +145,7 @@
             // labelPercentComplete
             // 
             this.labelPercentComplete.AutoSize = true;
-            this.labelPercentComplete.Location = new System.Drawing.Point(507, 11);
+            this.labelPercentComplete.Location = new System.Drawing.Point(458, 11);
             this.labelPercentComplete.Name = "labelPercentComplete";
             this.labelPercentComplete.Size = new System.Drawing.Size(62, 13);
             this.labelPercentComplete.TabIndex = 0;
